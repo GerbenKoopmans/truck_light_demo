@@ -14,16 +14,8 @@ CRGB leds[NUM_LEDS];
 #define SLIDER_PIN A1
 
 uint8_t function;
-enum status_types_t
+enum function_types_t
 {
-    IDLE,
-    REALTIME,
-    PAST_IDLE,
-    PAST_ACTIVE,
-    FUTURE_IDLE,
-    FUTURE_ACTIVE,
-    EXERCISE_1,
-    EXERCISE_2
 };
 
 void setup()
