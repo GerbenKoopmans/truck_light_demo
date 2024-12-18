@@ -16,7 +16,14 @@ CRGB leds[NUM_LEDS];
 uint8_t function;
 enum function_types_t
 {
+    MORNING,
+    DAY,
+    EVENING,
+    NIGHT
 };
+
+// Initialize function type
+function_types_t function = DAY;
 
 void setup()
 {
@@ -32,13 +39,48 @@ void setup()
     FastLED.show();
 }
 
+void slider_modes(function_types_t mode){
+switch (mode)
+    {
+        case MORNING:
+        fill_solid(leds, NUM_LEDS, CRGB(255, 200, 120)); // Warm orange tones to mimic sunrise
+        break;
+
+    case DAY:
+        fill_solid(leds, NUM_LEDS, CRGB(255, 255, 240)); // Bright white light for alertness
+        break;
+
+    case EVENING:
+        fill_solid(leds, NUM_LEDS, CRGB(255, 140, 70)); // Soft amber tones to mimic sunset
+        break;
+
+    case NIGHT:
+        fill_solid(leds, NUM_LEDS, CRGB(100, 20, 0)); // Dim red tones to promote sleep
+        break;
+
+    }
+}
 void loop()
 {
     // Read the analog value (0-1023)
     int sensorValue = analogRead(LDR_PIN);
     // Serial.println(sensorValue);
     int sliderValue = analogRead(SLIDER_PIN);
-    Serial.println(sliderValue);
+
+    // Map slider value to circadian modes
+    if (sliderValue < 256)
+        function = MORNING; // Early morning
+    else if (sliderValue < 512)
+        function = DAY; // Daylight
+    else if (sliderValue < 768)
+        function = EVENING; // Evening
+    else
+        function = NIGHT; // Night
+
+    // Apply circadian lighting based on the mode
+    slider_modes(function);
+
+    //Serial.println(sliderValue);
 
     // Map the analog value to a brightness range (0-255)
     int brightness = map(sensorValue, 200, 800, 80, 0);
