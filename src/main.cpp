@@ -18,9 +18,13 @@ CRGB leds[NUM_LEDS];
 
 // Debounce timer
 unsigned long lastDebounceTime = 0; // the last time the output pin was toggled
-int debounceDelay = 50;             // the debounce time; increase if the output flickers
+unsigned long debounceDelay = 50;   // the debounce time; increase if the output flickers
 int lastState = LOW;
 int buttonState = LOW;
+
+unsigned long wakeUpTimer = 0;
+unsigned long wakeUpDelay = 1000;
+int wakeUpBrightness = 0;
 
 uint8_t function;
 enum function_types_t
@@ -66,11 +70,6 @@ void readLDR()
 {
     // Read the analog value (0-1023)
     int sensorValue = analogRead(LDR_PIN);
-    // Serial.println(sensorValue);
-    int sliderValue = analogRead(SLIDER_PIN);
-    // Serial.println(sliderValue);
-    Serial.println(readButton(BUTTON_PIN2));
-
     // Map the analog value to a brightness range (0-255)
     int brightness = map(sensorValue, 200, 800, 80, 0);
 
@@ -79,7 +78,6 @@ void readLDR()
 
     // Adjust the brightness of the strip
     FastLED.setBrightness(brightness);
-
     // Show the updated LED colors and brightness
     FastLED.show();
 }
@@ -96,6 +94,7 @@ void setup()
     FastLED.setBrightness(BRIGHTNESS);
     FastLED.clear();
     FastLED.show();
+    function = WAKE_UP;
 }
 
 void loop()
@@ -103,11 +102,36 @@ void loop()
     switch (function)
     {
     case (WAKE_UP):
+        if (wakeUpDelay < millis() - wakeUpTimer)
+        {
+            // Reset timer
+            wakeUpTimer = millis();
+
+            if (wakeUpBrightness <= 255)
+            {
+                wakeUpBrightness += 1;
+                // Set all LEDs to white
+                fill_solid(leds, NUM_LEDS, CRGB::White);
+            }
+            else
+            {
+                Serial.println("Max wake-up brightness reached");
+                wakeUpBrightness = 255;
+            }
+        }
+        // Adjust the brightness of the strip
+        FastLED.setBrightness(wakeUpBrightness);
+        // Show the updated LED colors and brightness
+        FastLED.show();
         break;
     case (DRIVING):
+        readLDR();
         if (readButton(BUTTON_PIN1))
         {
             function = BREAK;
+        }
+        else if (readButton(BUTTON_PIN2))
+        {
         }
         break;
     case (BREAK):
