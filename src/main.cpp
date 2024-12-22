@@ -22,9 +22,6 @@ enum function_types_t
     NIGHT
 };
 
-// Initialize function type
-function_types_t function = DAY;
-
 void setup()
 {
     Serial.begin(9600);
@@ -37,12 +34,14 @@ void setup()
     FastLED.setBrightness(BRIGHTNESS);
     FastLED.clear();
     FastLED.show();
+    function = DAY;
 }
 
-void slider_modes(function_types_t mode){
-switch (mode)
+void slider_modes(function_types_t mode)
+{
+    switch (mode)
     {
-        case MORNING:
+    case MORNING:
         fill_solid(leds, NUM_LEDS, CRGB(255, 200, 120)); // Warm orange tones to mimic sunrise
         break;
 
@@ -57,7 +56,6 @@ switch (mode)
     case NIGHT:
         fill_solid(leds, NUM_LEDS, CRGB(100, 20, 0)); // Dim red tones to promote sleep
         break;
-
     }
 }
 void loop()
@@ -66,6 +64,7 @@ void loop()
     int sensorValue = analogRead(LDR_PIN);
     // Serial.println(sensorValue);
     int sliderValue = analogRead(SLIDER_PIN);
+    Serial.println(sliderValue);
 
     // Map slider value to circadian modes
     if (sliderValue < 256)
@@ -80,13 +79,13 @@ void loop()
     // Apply circadian lighting based on the mode
     slider_modes(function);
 
-    //Serial.println(sliderValue);
+    // Serial.println(sliderValue);
 
     // Map the analog value to a brightness range (0-255)
     int brightness = map(sensorValue, 200, 800, 80, 0);
 
     // Set all LEDs to white
-    fill_solid(leds, NUM_LEDS, CRGB::White);
+    // fill_solid(leds, NUM_LEDS, CRGB::White);
 
     // Adjust the brightness of the strip
     FastLED.setBrightness(brightness);
