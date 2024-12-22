@@ -23,16 +23,18 @@ int lastState = LOW;
 int buttonState = LOW;
 
 unsigned long wakeUpTimer = 0;
-unsigned long wakeUpDelay = 1000;
-int wakeUpBrightness = 0;
+unsigned long wakeUpDelay = 100;
+int wakeUpBrightness = 10;
 
-uint8_t function;
 enum function_types_t
 {
     WAKE_UP,
     DRIVING,
-    BREAK
+    BREAK,
+    EVENING,
+    SLEEP
 };
+uint8_t function = WAKE_UP;
 
 boolean readButton(int button)
 {
@@ -66,20 +68,94 @@ boolean readButton(int button)
     return false;
 }
 
-void readLDR()
+int readLDR()
 {
     // Read the analog value (0-1023)
     int sensorValue = analogRead(LDR_PIN);
+    // Serial.print("LDR value: ");
+    // Serial.println(sensorValue);
+
     // Map the analog value to a brightness range (0-255)
     int brightness = map(sensorValue, 200, 800, 80, 0);
+    return brightness;
+}
 
-    // Set all LEDs to white
-    fill_solid(leds, NUM_LEDS, CRGB::White);
+int readSlider()
+{
+    int sliderValue = analogRead(SLIDER_PIN);
+    // Serial.print("Slider value: ");
+    // Serial.println(sliderValue);
 
-    // Adjust the brightness of the strip
-    FastLED.setBrightness(brightness);
-    // Show the updated LED colors and brightness
-    FastLED.show();
+    // Map slider value to circadian modes
+    if (sliderValue < 200)
+        return WAKE_UP;
+    else if (sliderValue < 750)
+        return DRIVING;
+    else if (sliderValue < 950)
+        return EVENING;
+
+    return SLEEP;
+}
+
+void switchFunction()
+{
+    // If slider value changed
+    if (function != BREAK)
+        function = readSlider();
+
+    switch (function)
+    {
+    case (WAKE_UP):
+        // Set all LEDs to white
+        fill_solid(leds, NUM_LEDS, CRGB::White);
+
+        if (wakeUpDelay < millis() - wakeUpTimer)
+        {
+            // Reset timer
+            wakeUpTimer = millis();
+
+            if (wakeUpBrightness < 250)
+            {
+                wakeUpBrightness += 1;
+                // Adjust the brightness of the strip
+                FastLED.setBrightness(wakeUpBrightness);
+            }
+        }
+
+        break;
+
+    case (DRIVING):
+        // Set all LEDs to white
+        fill_solid(leds, NUM_LEDS, CRGB::Yellow);
+        FastLED.setBrightness(readLDR());
+
+        if (readButton(BUTTON_PIN1))
+        {
+            function = BREAK;
+            Serial.println("Break started");
+        }
+        else if (readButton(BUTTON_PIN2))
+        {
+        }
+        break;
+
+    case (BREAK):
+        fill_solid(leds, NUM_LEDS, CRGB::Orange);
+        if (readButton(BUTTON_PIN1))
+        {
+            function = DRIVING;
+            Serial.println("Break ended");
+        }
+        break;
+
+    case (EVENING):
+        fill_solid(leds, NUM_LEDS, CRGB::Red); // Dim red tones to promote sleep
+        break;
+
+    case (SLEEP):
+        fill_solid(leds, NUM_LEDS, CRGB::Black); // Turn LEDs off
+        break;
+    }
 }
 
 void setup()
@@ -99,42 +175,9 @@ void setup()
 
 void loop()
 {
-    switch (function)
-    {
-    case (WAKE_UP):
-        if (wakeUpDelay < millis() - wakeUpTimer)
-        {
-            // Reset timer
-            wakeUpTimer = millis();
-
-            if (wakeUpBrightness <= 255)
-            {
-                wakeUpBrightness += 1;
-                // Set all LEDs to white
-                fill_solid(leds, NUM_LEDS, CRGB::White);
-            }
-            else
-            {
-                Serial.println("Max wake-up brightness reached");
-                wakeUpBrightness = 255;
-            }
-        }
-        // Adjust the brightness of the strip
-        FastLED.setBrightness(wakeUpBrightness);
-        // Show the updated LED colors and brightness
-        FastLED.show();
-        break;
-    case (DRIVING):
-        readLDR();
-        if (readButton(BUTTON_PIN1))
-        {
-            function = BREAK;
-        }
-        else if (readButton(BUTTON_PIN2))
-        {
-        }
-        break;
-    case (BREAK):
-        break;
-    }
+    switchFunction();
+    // Show the updated LED colors and brightness
+    FastLED.show();
+    // Add a small delay for stability
+    delay(10);
 }
