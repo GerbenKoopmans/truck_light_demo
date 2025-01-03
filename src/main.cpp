@@ -7,7 +7,7 @@
 #define NUM_LEDS 30
 CRGB leds[NUM_LEDS];
 
-#define BRIGHTNESS 96
+#define BRIGHTNESS 255
 #define FRAMES_PER_SECOND 120
 
 #define LDR_PIN A0
@@ -23,8 +23,8 @@ int lastState = LOW;
 int buttonState = LOW;
 
 unsigned long wakeUpTimer = 0;
-unsigned long wakeUpDelay = 100;
-int wakeUpBrightness = 10;
+unsigned long wakeUpDelay = 200;
+int wakeUpBrightness = 0;
 
 enum function_types_t
 {
@@ -72,11 +72,11 @@ int readLDR()
 {
     // Read the analog value (0-1023)
     int sensorValue = analogRead(LDR_PIN);
-    // Serial.print("LDR value: ");
-    // Serial.println(sensorValue);
+    Serial.print("LDR value: ");
+    Serial.println(sensorValue);
 
     // Map the analog value to a brightness range (0-255)
-    int brightness = map(sensorValue, 200, 800, 80, 0);
+    int brightness = map(sensorValue, 200, 1080, 255, 0);
     return brightness;
 }
 
@@ -87,14 +87,24 @@ int readSlider()
     // Serial.println(sliderValue);
 
     // Map slider value to circadian modes
-    if (sliderValue < 200)
-        return WAKE_UP;
-    else if (sliderValue < 750)
-        return DRIVING;
-    else if (sliderValue < 950)
+    if (sliderValue < 100)
+    {
+        return SLEEP;
+    }
+    else if (sliderValue < 300)
+    {
         return EVENING;
-
-    return SLEEP;
+    }
+    else if (sliderValue < 800)
+    {
+        return DRIVING;
+    }
+    if (function != WAKE_UP)
+    {
+        wakeUpBrightness = 0;
+        FastLED.setBrightness(wakeUpBrightness);
+    }
+    return WAKE_UP;
 }
 
 void switchFunction()
@@ -140,6 +150,7 @@ void switchFunction()
         break;
 
     case (BREAK):
+        FastLED.setBrightness(BRIGHTNESS);
         fill_solid(leds, NUM_LEDS, CRGB::Orange);
         if (readButton(BUTTON_PIN1))
         {
@@ -149,6 +160,7 @@ void switchFunction()
         break;
 
     case (EVENING):
+        FastLED.setBrightness(BRIGHTNESS);
         fill_solid(leds, NUM_LEDS, CRGB::Red); // Dim red tones to promote sleep
         break;
 
@@ -170,7 +182,6 @@ void setup()
     FastLED.setBrightness(BRIGHTNESS);
     FastLED.clear();
     FastLED.show();
-    function = WAKE_UP;
 }
 
 void loop()
